@@ -1,0 +1,40 @@
+name: Task 1 - Build Failure Alert
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Attempting Build
+        run: |
+          echo "Compiling the application..."
+          # This is where we simulate a failure for Maithri's task
+          exit 1 
+
+      - name: Alert Teams on Failure
+        if: failure()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d "{
+            \"type\": \"message\",
+            \"attachments\": [{
+              \"contentType\": \"application/vnd.microsoft.card.adaptive\",
+              \"content\": {
+                \"type\": \"AdaptiveCard\",
+                \"body\": [
+                  {\"type\": \"TextBlock\", \"text\": \"❌ BUILD FAILURE\", \"weight\": \"Bolder\", \"color\": \"Attention\", \"size\": \"Large\"},
+                  {\"type\": \"TextBlock\", \"text\": \"Repository: **${{ github.repository }}**\", \"wrap\": true},
+                  {\"type\": \"TextBlock\", \"text\": \"The build step failed. Check the logs immediately.\", \"wrap\": true},
+                  {\"type\": \"ActionSet\", \"actions\": [
+                    {\"type\": \"Action.OpenUrl\", \"title\": \"View Logs\", \"url\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}
+                  ]}
+                ],
+                \"\$schema\": \"http://adaptivecards.io/schemas/adaptive-card.json\",
+                \"version\": \"1.4\"
+              }
+            }]
+          }" ${{ secrets.TESTING_WEBHOOK }}
