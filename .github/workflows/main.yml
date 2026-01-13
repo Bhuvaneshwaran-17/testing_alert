@@ -1,4 +1,20 @@
-- name: Alert Teams on Failure
+name: Task 1 - Build Failure Alert
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Attempting Build
+        run: |
+          echo "Compiling..."
+          exit 1
+
+      - name: Alert Teams on Failure
         if: failure()
         env:
           TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
