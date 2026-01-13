@@ -1,74 +1,30 @@
 name: Integrated Multi-Task Pipeline
-
 on:
   push:
     branches: [ main ]
-
 jobs:
-  # TASK 1: GENERAL SYSTEM MONITORING
   Task_1_Build_Monitor:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Run Build Logic
-        run: |
-          echo "Simulating a build failure for testing..."
-          # To test Task 1 alert, uncomment the next line:
-          # exit 1 
-
-      - name: Alert Task 1 Failure
-        if: failure()
-        env:
-          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
-        run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{"text": "🚨 TASK 1 FAILURE: General Build Error detected."}' "$TEAMS_URL"
-
-  # TASK 2: ENVIRONMENT VALIDATION
+      - name: Run Build
+        run: echo "Simulating Build..."
   Task_2_Env_Check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check Environment Secret
+      - name: Check Secret
         run: |
           if [ -z "${{ secrets.MANDATORY_CONFIG_VAR }}" ]; then
-            echo "::error::Task 2 Failed: Secret MANDATORY_CONFIG_VAR is Missing."
             exit 1
           fi
-
-      - name: Alert Task 2 Failure
-        if: failure()
-        env:
-          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
-        run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{"text": "🚨 TASK 2 FAILURE: Environment Variable (Secret) is missing!"}' "$TEAMS_URL"
-
-  # TASK 3: APP CONFIGURATION VALIDATION
   Task_3_Config_Check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Check appsettings.json
         run: |
-          # Ensuring the file exists first
-          if [ ! -f appsettings.json ]; then
-            echo "::error::appsettings.json not found!"
+          if [ ! -f appsettings.json ] || ! grep -q "DatabaseConnectionString" appsettings.json; then
             exit 1
           fi
-          # Checking for the specific key
-          if ! grep -q "DatabaseConnectionString" appsettings.json; then
-            echo "::error::Task 3 Failed: Key 'DatabaseConnectionString' is missing."
-            exit 1
-          fi
-
-      - name: Alert Task 3 Failure
-        if: failure()
-        env:
-          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
-        run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{"text": "🚨 TASK 3 FAILURE: AppConfig Key (DatabaseConnectionString) is missing!"}' "$TEAMS_URL"
