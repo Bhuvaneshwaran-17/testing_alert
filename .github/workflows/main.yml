@@ -1,38 +1,74 @@
-name: Task 1 - Build Failure Alert
+name: Integrated Multi-Task Pipeline
 
-on: [push]
+on:
+  push:
+    branches: [ main ]
 
 jobs:
-  build:
+  # TASK 1: GENERAL SYSTEM MONITORING
+  Task_1_Build_Monitor:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Attempting Build
+      - name: Run Build Logic
         run: |
-          echo "Compiling..."
-          exit 1
+          echo "Simulating a build failure for testing..."
+          # To test Task 1 alert, uncomment the next line:
+          # exit 1 
 
-      - name: Alert Teams on Failure
+      - name: Alert Task 1 Failure
         if: failure()
         env:
           TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
         run: |
-          curl -X POST -H "Content-Type: application/json" \
-          -d "{
-            \"type\": \"message\",
-            \"attachments\": [{
-              \"contentType\": \"application/vnd.microsoft.card.adaptive\",
-              \"content\": {
-                \"type\": \"AdaptiveCard\",
-                \"body\": [
-                  {\"type\": \"TextBlock\", \"text\": \"❌ BUILD FAILURE\", \"weight\": \"Bolder\", \"color\": \"Attention\", \"size\": \"Large\"},
-                  {\"type\": \"TextBlock\", \"text\": \"Repository: **${{ github.repository }}**\", \"wrap\": true},
-                  {\"type\": \"TextBlock\", \"text\": \"The build step failed.\", \"wrap\": true}
-                ],
-                \"\$schema\": \"http://adaptivecards.io/schemas/adaptive-card.json\",
-                \"version\": \"1.4\"
-              }
-            }]
-          }" "$TEAMS_URL"
+          curl -H 'Content-Type: application/json' \
+          -d '{"text": "🚨 TASK 1 FAILURE: General Build Error detected."}' "$TEAMS_URL"
+
+  # TASK 2: ENVIRONMENT VALIDATION
+  Task_2_Env_Check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Environment Secret
+        run: |
+          if [ -z "${{ secrets.MANDATORY_CONFIG_VAR }}" ]; then
+            echo "::error::Task 2 Failed: Secret MANDATORY_CONFIG_VAR is Missing."
+            exit 1
+          fi
+
+      - name: Alert Task 2 Failure
+        if: failure()
+        env:
+          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
+        run: |
+          curl -H 'Content-Type: application/json' \
+          -d '{"text": "🚨 TASK 2 FAILURE: Environment Variable (Secret) is missing!"}' "$TEAMS_URL"
+
+  # TASK 3: APP CONFIGURATION VALIDATION
+  Task_3_Config_Check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check appsettings.json
+        run: |
+          # Ensuring the file exists first
+          if [ ! -f appsettings.json ]; then
+            echo "::error::appsettings.json not found!"
+            exit 1
+          fi
+          # Checking for the specific key
+          if ! grep -q "DatabaseConnectionString" appsettings.json; then
+            echo "::error::Task 3 Failed: Key 'DatabaseConnectionString' is missing."
+            exit 1
+          fi
+
+      - name: Alert Task 3 Failure
+        if: failure()
+        env:
+          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
+        run: |
+          curl -H 'Content-Type: application/json' \
+          -d '{"text": "🚨 TASK 3 FAILURE: AppConfig Key (DatabaseConnectionString) is missing!"}' "$TEAMS_URL"
