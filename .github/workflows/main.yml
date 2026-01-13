@@ -25,8 +25,24 @@ jobs:
         env:
           TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
         run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{"text": "🚨 TASK 2 FAILURE: Environment Variable is missing!"}' "$TEAMS_URL"
+          cat <<EOF > payload.json
+          {
+            "type": "message",
+            "attachments": [{
+              "contentType": "application/vnd.microsoft.card.adaptive",
+              "content": {
+                "type": "AdaptiveCard",
+                "body": [
+                  { "type": "TextBlock", "size": "Medium", "weight": "Bolder", "text": "Bhuvi's System Alert - Task 2" },
+                  { "type": "TextBlock", "text": "Failure: Environment Variable (MANDATORY_CONFIG_VAR) is missing.", "wrap": true }
+                ],
+                "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "version": "1.4"
+              }
+            }]
+          }
+          EOF
+          curl -H 'Content-Type: application/json' -d @payload.json "\$TEAMS_URL"
 
   Task_3_Config_Check:
     runs-on: ubuntu-latest
@@ -43,5 +59,21 @@ jobs:
         env:
           TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
         run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{"text": "🚨 TASK 3 FAILURE: Config Key is missing!"}' "$TEAMS_URL"
+          cat <<EOF > payload.json
+          {
+            "type": "message",
+            "attachments": [{
+              "contentType": "application/vnd.microsoft.card.adaptive",
+              "content": {
+                "type": "AdaptiveCard",
+                "body": [
+                  { "type": "TextBlock", "size": "Medium", "weight": "Bolder", "text": "Bhuvi's System Alert - Task 3" },
+                  { "type": "TextBlock", "text": "Failure: DatabaseConnectionString not found in appsettings.json.", "wrap": true }
+                ],
+                "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "version": "1.4"
+              }
+            }]
+          }
+          EOF
+          curl -H 'Content-Type: application/json' -d @payload.json "\$TEAMS_URL"
