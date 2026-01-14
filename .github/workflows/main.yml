@@ -2,7 +2,7 @@ name: Integrated Multi-Task Pipeline
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # This allows you to manually trigger a fresh run
+  workflow_dispatch:
 
 env:
   TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
@@ -14,46 +14,46 @@ jobs:
       - name: Run Build
         run: |
           echo "Simulating Build Failure..."
-          exit 1 # Forces failure to test alert
+          exit 1
           
       - name: Alert Task 1 Failure
         if: failure()
         run: |
           curl -H 'Content-Type: application/json' \
-          -d '{"text": "🚨 Task 1: Build Failed"}' "$TEAMS_URL"
+          -d "{\"text\": \"🚨 Task 1 Failed: Build Error in ${{ github.repository }}\"}" $TEAMS_URL
 
   Task_2_Env_Check:
     runs-on: ubuntu-latest
-    # This ensures Task 2 runs even if Task 1 fails
-    if: always() 
     needs: Task_1_Build_Monitor
+    if: always() # <--- CRITICAL: Runs even if Task 1 failed
     steps:
       - name: Check Secret
         run: |
           if [ -z "${{ secrets.MANDATORY_CONFIG_VAR }}" ]; then
-            echo "Secret missing"
+            echo "MANDATORY_CONFIG_VAR is missing"
             exit 1
           fi
       - name: Alert Task 2 Failure
         if: failure()
         run: |
           curl -H 'Content-Type: application/json' \
-          -d '{"text": "🚨 Task 2: Secret Missing"}' "$TEAMS_URL"
+          -d "{\"text\": \"🚨 Task 2 Failed: Secret Missing in ${{ github.repository }}\"}" $TEAMS_URL
 
   Task_3_Config_Check:
     runs-on: ubuntu-latest
-    if: always()
     needs: Task_2_Env_Check
+    if: always() # <--- CRITICAL: Runs even if Task 2 failed
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Check appsettings.json
         run: |
           if [ ! -f appsettings.json ]; then
+            echo "File not found"
             exit 1
           fi
       - name: Alert Task 3 Failure
         if: failure()
         run: |
           curl -H 'Content-Type: application/json' \
-          -d '{"text": "🚨 Task 3: File Missing"}' "$TEAMS_URL"
+          -d "{\"text\": \"🚨 Task 3 Failed: File Missing in ${{ github.repository }}\"}" $TEAMS_URL
