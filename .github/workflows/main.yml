@@ -14,6 +14,8 @@ jobs:
 
   Task_2_Env_Check:
     runs-on: ubuntu-latest
+    env:
+      TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
     steps:
       - name: Check Secret
         # run: |
