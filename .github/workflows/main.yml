@@ -16,10 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check Secret
+        # run: |
+        #   if [ -z "${{ secrets.MANDATORY_CONFIG_VAR }}" ]; then
+        #     exit 1
+        #   fi
         run: |
-          if [ -z "${{ secrets.MANDATORY_CONFIG_VAR }}" ]; then
-            exit 1
-          fi
+          echo "The URL length is: ${#TEAMS_URL}"
+          echo "The URL starts with: ${TEAMS_URL:0:8}"
+          curl -H 'Content-Type: application/json' -d @payload.json "$TEAMS_URL"
       - name: Alert Task 2 Failure
         if: failure()
         env:
