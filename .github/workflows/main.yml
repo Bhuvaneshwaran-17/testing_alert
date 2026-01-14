@@ -2,84 +2,58 @@ name: Integrated Multi-Task Pipeline
 on:
   push:
     branches: [ main ]
+  workflow_dispatch: # This allows you to manually trigger a fresh run
+
+env:
+  TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
 
 jobs:
   Task_1_Build_Monitor:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Run Build
-        run: echo "Simulating Build..."
+        run: |
+          echo "Simulating Build Failure..."
+          exit 1 # Forces failure to test alert
+          
+      - name: Alert Task 1 Failure
+        if: failure()
+        run: |
+          curl -H 'Content-Type: application/json' \
+          -d '{"text": "🚨 Task 1: Build Failed"}' "$TEAMS_URL"
 
   Task_2_Env_Check:
     runs-on: ubuntu-latest
-    env:
-      TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
+    # This ensures Task 2 runs even if Task 1 fails
+    if: always() 
+    needs: Task_1_Build_Monitor
     steps:
       - name: Check Secret
-        # run: |
-        #   if [ -z "${{ secrets.MANDATORY_CONFIG_VAR }}" ]; then
-        #     exit 1
-        #   fi
         run: |
-          echo "The URL length is: ${#TEAMS_URL}"
-          echo "The URL starts with: ${TEAMS_URL:0:8}"
-          curl -H 'Content-Type: application/json' -d @payload.json "$TEAMS_URL"
+          if [ -z "${{ secrets.MANDATORY_CONFIG_VAR }}" ]; then
+            echo "Secret missing"
+            exit 1
+          fi
       - name: Alert Task 2 Failure
         if: failure()
-        env:
-          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
         run: |
-          cat <<EOF > payload.json
-          {
-            "type": "message",
-            "attachments": [{
-              "contentType": "application/vnd.microsoft.card.adaptive",
-              "content": {
-                "type": "AdaptiveCard",
-                "body": [
-                  { "type": "TextBlock", "size": "Medium", "weight": "Bolder", "text": "Bhuvi's System Alert - Task 2" },
-                  { "type": "TextBlock", "text": "Failure: Environment Variable (MANDATORY_CONFIG_VAR) is missing.", "wrap": true }
-                ],
-                "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                "version": "1.4"
-              }
-            }]
-          }
-          EOF
-          curl -H 'Content-Type: application/json' -d @payload.json "\$TEAMS_URL"
+          curl -H 'Content-Type: application/json' \
+          -d '{"text": "🚨 Task 2: Secret Missing"}' "$TEAMS_URL"
 
   Task_3_Config_Check:
     runs-on: ubuntu-latest
+    if: always()
+    needs: Task_2_Env_Check
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Check appsettings.json
         run: |
-          if [ ! -f appsettings.json ] || ! grep -q "DatabaseConnectionString" appsettings.json; then
+          if [ ! -f appsettings.json ]; then
             exit 1
           fi
       - name: Alert Task 3 Failure
         if: failure()
-        env:
-          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
         run: |
-          cat <<EOF > payload.json
-          {
-            "type": "message",
-            "attachments": [{
-              "contentType": "application/vnd.microsoft.card.adaptive",
-              "content": {
-                "type": "AdaptiveCard",
-                "body": [
-                  { "type": "TextBlock", "size": "Medium", "weight": "Bolder", "text": "Bhuvi's System Alert - Task 3" },
-                  { "type": "TextBlock", "text": "Failure: DatabaseConnectionString not found in appsettings.json.", "wrap": true }
-                ],
-                "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                "version": "1.4"
-              }
-            }]
-          }
-          EOF
-          curl -H 'Content-Type: application/json' -d @payload.json "\$TEAMS_URL"
+          curl -H 'Content-Type: application/json' \
+          -d '{"text": "🚨 Task 3: File Missing"}' "$TEAMS_URL"
